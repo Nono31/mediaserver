@@ -1,0 +1,284 @@
+#####################################################
+#                       Seedbox                     #
+#                      ---------                    #
+#                                                   #
+# - Plex     : Streaming video/music/photos         #
+# - Ombi     : Requêtes de téléchargements          #
+# - Sonarr   : Gestionnaire de séries               #
+# - Radarr  : Gestionnaire de films                 #
+#                                                   #
+#####################################################
+
+version: '3.4'
+services:
+
+###########
+# pyLoad  #
+###########
+  pyload:
+    container_name: sb-pyload
+    hostname: pyload
+    image: linuxserver/pyload
+    restart: ${RESTART_MODE}
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.pyload.loadbalancer.server.port=8000
+      - traefik.http.routers.pyload.entrypoints=web,websecure
+      - traefik.http.routers.pyload.rule=Host(`${PYLOAD_FQDN}`)
+      - traefik.http.routers.pyload.tls=true
+      - traefik.http.routers.pyload.tls.certresolver=letsencrypt
+      - providers.docker.network=${PROXY_NETWORK}
+    ports:
+      - 8000:8000
+    environment:
+      - PUID=${DUID} # default user id, defined in .env
+      - PGID=${DGID} # default group id, defined in .env
+      - TZ=${TZ} # timezone, defined in .env
+    volumes:
+      - /docker/pyload/config:/config
+      - /docker/media/downloads:/opt/pyload/downloads
+      - /docker/media/blackhole:/opt/pyload/blackhole
+    networks:
+      - proxy
+
+
+###########
+# Jackett #
+###########
+  jackett:
+    container_name: sb-jackett
+    hostname: jackett
+    image: linuxserver/jackett:latest
+    restart: ${RESTART_MODE}
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.jackett.loadbalancer.server.port=9117
+      - traefik.http.routers.jackett.entrypoints=web,websecure
+      - traefik.http.routers.jackett.rule=Host(`${JACKETT_FQDN}`)
+      - traefik.http.routers.jackett.tls=true
+      - traefik.http.routers.jackett.tls.certresolver=letsencrypt
+      - providers.docker.network=${PROXY_NETWORK}
+    ports:
+      - 9117:9117
+    environment:
+      - PUID=${DUID} # default user id, defined in .env
+      - PGID=${DGID} # default group id, defined in .env
+      - TZ=${TZ} # timezone, defined in .env
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /docker/media/blackhole:/downloads # place where to put .torrent files for manual download
+      - /docker/jackett/config:/config # config files
+    networks:
+      - proxy
+
+
+
+##########
+# Sonarr #
+##########
+  sonarr:
+    container_name: sb-sonarr
+    hostname: sonarr
+    image: linuxserver/sonarr:latest
+    restart: ${RESTART_MODE}    
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.sonarr.loadbalancer.server.port=8989
+      - traefik.http.routers.sonarr.entrypoints=web,websecure
+      - traefik.http.routers.sonarr.rule=Host(`${SONARR_FQDN}`)
+      - traefik.http.routers.sonarr.tls=true
+      - traefik.http.routers.sonarr.tls.certresolver=letsencrypt
+      - providers.docker.network=${PROXY_NETWORK}
+    ports:
+      - 8989:8989
+    environment:
+      - PUID=${DUID} # default user id, defined in .env
+      - PGID=${DGID} # default group id, defined in .env
+      - TZ=${TZ} # timezone, defined in .env
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /docker/sonarr/config:/config # config files
+      - /docker/media/library/Tv_shows:/tv # tv shows folder
+      - /docker/media/downloads:/downloads # download folder
+      - /docker/media/blackhole:/blackhole
+    networks:
+      - proxy
+
+
+##########
+# Radarr #
+##########
+  radarr:
+    container_name: sb-radarr
+    hostname: radarr
+    image: linuxserver/radarr:latest
+    restart: ${RESTART_MODE}
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.radarr.loadbalancer.server.port=7878
+      - traefik.http.routers.radarr.entrypoints=web,websecure
+      - traefik.http.routers.radarr.rule=Host(`${RADARR_FQDN}`)
+      - traefik.http.routers.radarr.tls=true
+      - traefik.http.routers.radarr.tls.certresolver=letsencrypt
+      - providers.docker.network=${PROXY_NETWORK}
+    ports:
+      - 7878:7878
+    environment:
+      - PUID=${DUID} # default user id, defined in .env
+      - PGID=${DGID} # default group id, defined in .env
+      - TZ=${TZ} # timezone, defined in .env
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /docker/radarr/config:/config # config files
+      - /docker/media/library/Movies:/movies # movies folder
+      - /docker/media/downloads:/downloads # download folder
+      - /docker/media/blackhole:/blackhole
+    networks:
+      - proxy
+
+
+##########
+# Lidarr #
+##########
+  lidarr:
+    container_name: sb-lidarr
+    hostname: lidarr
+    image: linuxserver/lidarr:latest
+    restart: ${RESTART_MODE}
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.lidarr.loadbalancer.server.port=8686
+      - traefik.http.routers.lidarr.entrypoints=web,websecure
+      - traefik.http.routers.lidarr.rule=Host(`${LIDARR_FQDN}`)
+      - traefik.http.routers.lidarr.tls=true
+      - traefik.http.routers.lidarr.tls.certresolver=letsencrypt
+      - providers.docker.network=${PROXY_NETWORK}
+    ports:
+      - 8686:8686
+    environment:
+      - PUID=${DUID} # default user id, defined in .env
+      - PGID=${DGID} # default group id, defined in .env
+      - TZ=${TZ} # timezone, defined in .env
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /docker/lidarr/config:/config # config files
+      - /docker/media/library/Musics:/musics # music folder
+      - /docker/media/downloads:/downloads # download folder
+      - /docker/media/blackhole:/blackhole
+    networks:
+      - proxy
+
+
+########
+# Ombi #
+########
+  ombi:
+    container_name: sb-ombi
+    hostname: ombi
+    image: linuxserver/ombi
+    restart: ${RESTART_MODE}
+    ports:
+      - 3579:3579
+    hostname: ombi
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:3579"]
+      interval: 30s 
+      timeout: 10s 
+      retries: 3
+      start_period: 1m
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.ombi.loadbalancer.server.port=3579
+      - traefik.http.routers.ombi.entrypoints=web,websecure
+      - traefik.http.routers.ombi.rule=Host(`${OMBI_FQDN}`)
+      - traefik.http.routers.ombi.tls=true
+      - traefik.http.routers.ombi.tls.certresolver=letsencrypt
+      - providers.docker.network=${PROXY_NETWORK}
+    volumes:
+      - /docker/ombi/conf:/config:rw
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - TZ=${TZ}
+      - PUID=${DUID}
+      - PGID=${DGID}
+    networks:
+      - proxy
+
+
+##########
+# Plex   #
+##########
+  plex:
+    container_name: sb-plex
+    hostname: plex
+    image: plexinc/pms-docker:latest
+    restart: ${RESTART_MODE}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:32400/web/index.html"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5m
+    ports:
+      - 32400:32400/tcp
+      - 3005:3005/tcp
+      - 8324:8324/tcp
+      - 32469:32469/tcp
+      - 1900:1900/udp
+      - 32410:32410/udp
+      - 32412:32412/udp
+      - 32413:32413/udp
+      - 32414:32414/udp
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.plex.loadbalancer.server.port=32400
+      - traefik.http.routers.plex.entrypoints=web,websecure
+      - traefik.http.routers.plex.rule=Host(`${PLEX_FQDN}`)
+      - traefik.http.routers.plex.tls=true
+      - traefik.http.routers.plex.tls.certresolver=letsencrypt
+      - providers.docker.network=${PROXY_NETWORK}
+    environment:
+      - TZ=${TZ} # timezone, defined in .env
+    volumes:
+      - /docker/plex/config:/config # plex database
+      - /docker/plex/transcode:/transcode # temp transcoded files
+      - /docker/media/library:/data # media library
+    networks:
+      - proxy
+
+
+############
+# Tautulli #
+############
+  tautulli:
+    image: linuxserver/tautulli
+    hostname: tautulli
+    container_name: sb-tautulli
+    restart: ${RESTART_MODE}
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.tautulli.loadbalancer.server.port=8181
+      - traefik.http.routers.tautulli.entrypoints=web,websecure
+      - traefik.http.routers.tautulli.rule=Host(`${TAUTULLI_FQDN}`)
+      - traefik.http.routers.tautulli.tls=true
+      - traefik.http.routers.tautulli.tls.certresolver=letsencrypt
+      - providers.docker.network=${PROXY_NETWORK}
+    environment:
+      - TZ=${TZ}
+      - PUID=${DUID}
+      - PGID=${DGID}
+    volumes:
+      - /docker/tautulli:/config
+      - /docker/plex/logs:/logs
+    ports:
+      - 8181:8181
+    networks:
+      - proxy
+
+
+networks:
+  proxy:
+#    enable_ipv6: false
+    external:
+      name: ${PROXY_NETWORK}
+  back: ~
