@@ -20,6 +20,12 @@ services:
     hostname: pyload
     image: linuxserver/pyload
     restart: ${RESTART_MODE}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 1m
     labels:
       - traefik.enable=true
       - traefik.http.services.pyload.loadbalancer.server.port=8000
@@ -27,7 +33,7 @@ services:
       - traefik.http.routers.pyload.rule=Host(`${PYLOAD_FQDN}`)
       - traefik.http.routers.pyload.tls=true
       - traefik.http.routers.pyload.tls.certresolver=letsencrypt
-      - providers.docker.network=${PROXY_NETWORK}
+      - traefik.docker.network=${PROXY_NETWORK}
     ports:
       - 8000:8000
     environment:
@@ -50,6 +56,12 @@ services:
     hostname: jackett
     image: linuxserver/jackett:latest
     restart: ${RESTART_MODE}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:9117/UI/Dashboard"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 1m
     labels:
       - traefik.enable=true
       - traefik.http.services.jackett.loadbalancer.server.port=9117
@@ -57,7 +69,7 @@ services:
       - traefik.http.routers.jackett.rule=Host(`${JACKETT_FQDN}`)
       - traefik.http.routers.jackett.tls=true
       - traefik.http.routers.jackett.tls.certresolver=letsencrypt
-      - providers.docker.network=${PROXY_NETWORK}
+      - traefik.docker.network=${PROXY_NETWORK}
     ports:
       - 9117:9117
     environment:
@@ -80,7 +92,13 @@ services:
     container_name: sb-sonarr
     hostname: sonarr
     image: linuxserver/sonarr:latest
-    restart: ${RESTART_MODE}    
+    restart: ${RESTART_MODE}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8989"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 1m
     labels:
       - traefik.enable=true
       - traefik.http.services.sonarr.loadbalancer.server.port=8989
@@ -88,7 +106,7 @@ services:
       - traefik.http.routers.sonarr.rule=Host(`${SONARR_FQDN}`)
       - traefik.http.routers.sonarr.tls=true
       - traefik.http.routers.sonarr.tls.certresolver=letsencrypt
-      - providers.docker.network=${PROXY_NETWORK}
+      - traefik.docker.network=${PROXY_NETWORK}
     ports:
       - 8989:8989
     environment:
@@ -113,6 +131,12 @@ services:
     hostname: radarr
     image: linuxserver/radarr:latest
     restart: ${RESTART_MODE}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:7878"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 1m
     labels:
       - traefik.enable=true
       - traefik.http.services.radarr.loadbalancer.server.port=7878
@@ -120,7 +144,7 @@ services:
       - traefik.http.routers.radarr.rule=Host(`${RADARR_FQDN}`)
       - traefik.http.routers.radarr.tls=true
       - traefik.http.routers.radarr.tls.certresolver=letsencrypt
-      - providers.docker.network=${PROXY_NETWORK}
+      - traefik.docker.network=${PROXY_NETWORK}
     ports:
       - 7878:7878
     environment:
@@ -145,6 +169,12 @@ services:
     hostname: lidarr
     image: linuxserver/lidarr:latest
     restart: ${RESTART_MODE}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8686"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 1m
     labels:
       - traefik.enable=true
       - traefik.http.services.lidarr.loadbalancer.server.port=8686
@@ -152,7 +182,7 @@ services:
       - traefik.http.routers.lidarr.rule=Host(`${LIDARR_FQDN}`)
       - traefik.http.routers.lidarr.tls=true
       - traefik.http.routers.lidarr.tls.certresolver=letsencrypt
-      - providers.docker.network=${PROXY_NETWORK}
+      - traefik.docker.network=${PROXY_NETWORK}
     ports:
       - 8686:8686
     environment:
@@ -165,6 +195,42 @@ services:
       - /docker/media/library/Musics:/musics # music folder
       - /docker/media/downloads:/downloads # download folder
       - /docker/media/blackhole:/blackhole
+    networks:
+      - proxy
+
+##########
+# Bazarr #
+##########
+  bazarr:
+    container_name: sb-bazarr
+    hostname: bazarr
+    image: linuxserver/bazarr:latest
+    restart: ${RESTART_MODE}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:6767"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 1m
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.bazarr.loadbalancer.server.port=6767
+      - traefik.http.routers.bazarr.entrypoints=web,websecure
+      - traefik.http.routers.bazarr.rule=Host(`${BAZARR_FQDN}`)
+      - traefik.http.routers.bazarr.tls=true
+      - traefik.http.routers.bazarr.tls.certresolver=letsencrypt
+      - traefik.docker.network=${PROXY_NETWORK}
+    ports:
+      - 6767:6767
+    environment:
+      - PUID=${DUID} # default user id, defined in .env
+      - PGID=${DGID} # default group id, defined in .env
+      - TZ=${TZ} # timezone, defined in .env
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /docker/bazarr/config:/config # config files
+      - /docker/media/library/Movies:/movies
+      - /docker/media/library/Tv_shows:/tv
     networks:
       - proxy
 
@@ -193,7 +259,7 @@ services:
       - traefik.http.routers.ombi.rule=Host(`${OMBI_FQDN}`)
       - traefik.http.routers.ombi.tls=true
       - traefik.http.routers.ombi.tls.certresolver=letsencrypt
-      - providers.docker.network=${PROXY_NETWORK}
+      - traefik.docker.network=${PROXY_NETWORK}
     volumes:
       - /docker/ombi/conf:/config:rw
       - /etc/localtime:/etc/localtime:ro
@@ -230,13 +296,14 @@ services:
       - 32413:32413/udp
       - 32414:32414/udp
     labels:
+      - autoheal=true
       - traefik.enable=true
       - traefik.http.services.plex.loadbalancer.server.port=32400
       - traefik.http.routers.plex.entrypoints=web,websecure
       - traefik.http.routers.plex.rule=Host(`${PLEX_FQDN}`)
       - traefik.http.routers.plex.tls=true
       - traefik.http.routers.plex.tls.certresolver=letsencrypt
-      - providers.docker.network=${PROXY_NETWORK}
+      - traefik.docker.network=${PROXY_NETWORK}
     environment:
       - TZ=${TZ} # timezone, defined in .env
     volumes:
@@ -255,6 +322,12 @@ services:
     hostname: tautulli
     container_name: sb-tautulli
     restart: ${RESTART_MODE}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8181/home"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 1m
     labels:
       - traefik.enable=true
       - traefik.http.services.tautulli.loadbalancer.server.port=8181
@@ -262,7 +335,7 @@ services:
       - traefik.http.routers.tautulli.rule=Host(`${TAUTULLI_FQDN}`)
       - traefik.http.routers.tautulli.tls=true
       - traefik.http.routers.tautulli.tls.certresolver=letsencrypt
-      - providers.docker.network=${PROXY_NETWORK}
+      - traefik.docker.network=${PROXY_NETWORK}
     environment:
       - TZ=${TZ}
       - PUID=${DUID}
